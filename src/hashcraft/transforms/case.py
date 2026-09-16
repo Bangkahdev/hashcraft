@@ -16,7 +16,8 @@ from typing import Literal
 CaseMode = Literal["lower", "upper", "capitalize", "all"]
 
 # Canonical emission order for --case all (PRD 4.3).
-_ALL_ORDER: tuple[CaseMode, ...] = ("lower", "upper", "capitalize")
+# _ALL_ORDER: tuple[CaseMode, ...] = ("lower", "upper", "capitalize")
+_ALL_ORDER: tuple[Literal["lower", "upper", "capitalize"], ...] = ("lower", "upper", "capitalize")
 
 
 def _render(candidate: str, mode: Literal["lower", "upper", "capitalize"]) -> str:
