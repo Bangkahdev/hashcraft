@@ -1,0 +1,32 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / coverage / tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Hashcraft's own generated output (wordlists etc.), if run from the
+# repo root during local testing.
+*.wordlist.txt

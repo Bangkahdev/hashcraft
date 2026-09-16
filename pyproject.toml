@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hashcraft"
+version = "0.1.0"
+description = "A deterministic candidate-generation and cryptographic digest-verification CLI for authorized security research, password auditing, CTFs, and security education."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["security", "ctf", "sha256", "wordlist", "password-auditing"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Topic :: Security :: Cryptography",
+    "Environment :: Console",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Bangkahdev/hashcraft"
+Repository = "https://github.com/Bangkahdev/hashcraft"
+Issues = "https://github.com/Bangkahdev/hashcraft/issues"
+Changelog = "https://github.com/Bangkahdev/hashcraft/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "build>=1.0",
+]
+
+[project.scripts]
+hashcraft = "hashcraft.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.pytest.ini_options]
+# Lets `pytest` import hashcraft directly from src/ without an install
+# step -- CI still exercises the real installed package via `pip install
+# -e .[dev]` first, so this is a convenience for local/dev runs only.
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "src"
+packages = ["hashcraft"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
