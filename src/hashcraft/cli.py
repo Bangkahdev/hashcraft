@@ -53,7 +53,8 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
-from typing import NoReturn, Sequence, TextIO
+from collections.abc import Sequence
+from typing import NoReturn, TextIO
 
 from . import __version__
 from .generation.combinations import DEFAULT_SEPARATORS

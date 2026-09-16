@@ -10,8 +10,7 @@ import sys
 
 import pytest
 
-from hashcraft import __version__
-from hashcraft import cli
+from hashcraft import __version__, cli
 
 
 class FakeTtyStdin(io.StringIO):

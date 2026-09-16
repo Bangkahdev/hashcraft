@@ -12,8 +12,9 @@ collection, or online authentication -- consistent with PRD 3's
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Iterable, Iterator, TextIO
+from typing import TextIO
 
 from .algorithms import HashAlgorithm, Sha256Algorithm
 from .validators import validate_and_normalize_digest
@@ -47,7 +48,7 @@ def iter_wordlist_file_lines(path: str | os.PathLike[str]) -> Iterator[str]:
     incidental leading/trailing whitespace here could silently turn a
     real match into a miss.
     """
-    with open(path, "r", encoding="utf-8") as handle:
+    with open(path, encoding="utf-8") as handle:
         for line in handle:
             yield line.rstrip("\n")
 

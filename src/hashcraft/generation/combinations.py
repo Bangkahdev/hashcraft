@@ -25,7 +25,7 @@ reasoning.
 from __future__ import annotations
 
 import itertools
-from typing import Iterator, Sequence
+from collections.abc import Iterator, Sequence
 
 # Default separators (PRD 4.3): "", "_", ".", "-", in this order.
 DEFAULT_SEPARATORS: tuple[str, ...] = ("", "_", ".", "-")
