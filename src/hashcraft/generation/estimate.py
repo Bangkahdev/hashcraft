@@ -33,8 +33,8 @@ identical deterministic pipeline a second time").
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 from .generator import GenerationConfig, iter_candidates
 

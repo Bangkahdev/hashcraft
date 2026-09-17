@@ -17,7 +17,7 @@ confirmation before relying on it.
 
 from __future__ import annotations
 
-from typing import Iterator, Sequence
+from collections.abc import Iterator, Sequence
 
 DEFAULT_SYMBOLS: tuple[str, ...] = ("!", "@", "#", "$", "_", "-")
 

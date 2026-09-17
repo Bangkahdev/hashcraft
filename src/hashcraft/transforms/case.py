@@ -10,7 +10,8 @@ string like ``"123"`` collapses to a single emitted variant because
 
 from __future__ import annotations
 
-from typing import Iterator, Literal
+from collections.abc import Iterator
+from typing import Literal
 
 CaseMode = Literal["lower", "upper", "capitalize", "all"]
 

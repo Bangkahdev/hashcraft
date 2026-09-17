@@ -44,16 +44,16 @@ multi-word (``--max-words`` > 1) output as final/normative.
 from __future__ import annotations
 
 import itertools
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from typing import Iterator, Sequence
 
-from .combinations import DEFAULT_SEPARATORS, iter_token_sequences
 from ..transforms.case import CaseMode, apply_case_variants
 from ..transforms.leetspeak import (
     DEFAULT_MAX_LEET_VARIANTS,
     generate_leetspeak_variants,
 )
 from ..transforms.symbols import DEFAULT_SYMBOLS, generate_symbol_variants
+from .combinations import DEFAULT_SEPARATORS, iter_token_sequences
 
 
 @dataclass(frozen=True)

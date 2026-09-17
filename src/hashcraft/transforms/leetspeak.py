@@ -22,7 +22,7 @@ substitution table is intended instead.
 
 from __future__ import annotations
 
-from typing import Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 
 LEET_MAP: Mapping[str, str] = {
     "a": "@",

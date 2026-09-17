@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import os
 import unicodedata
-from typing import Iterable, Iterator, Literal, Mapping, TextIO
+from collections.abc import Iterable, Iterator, Mapping
+from typing import Literal, TextIO
 
 # Fixed CLI-option order per PRD 4.1. This order is normative: it is the
 # order in which categories are drained when building the combined token
@@ -73,7 +74,7 @@ def iter_file_tokens(path: str | os.PathLike[str]) -> Iterator[str]:
     The file is decoded as UTF-8 (PRD 4.1). Lines are read lazily; the
     file is never read fully into memory as a list of lines.
     """
-    with open(path, "r", encoding="utf-8") as handle:
+    with open(path, encoding="utf-8") as handle:
         for line in handle:
             token = line.strip()
             if token:
