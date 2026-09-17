@@ -19,8 +19,8 @@ job.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from typing import Iterable, Iterator
 
 DEFAULT_MAX_COMBINATIONS = 500_000
 DEFAULT_LIMIT = 100_000
@@ -55,7 +55,7 @@ class PreflightLimitExceeded(RuntimeError):
     exit code 5 before emitting output."
     """
 
-    def __init__(self, max_combinations: int):
+    def __init__(self, max_combinations: int) -> None:
         super().__init__(
             f"filter-aware candidate estimate exceeds "
             f"--max-combinations={max_combinations}"
@@ -70,7 +70,7 @@ class EmissionLimitExceeded(RuntimeError):
     would be exceeded, generation stops with exit code 5."
     """
 
-    def __init__(self, limit: int):
+    def __init__(self, limit: int) -> None:
         super().__init__(f"number of candidates to emit exceeds --limit={limit}")
         self.limit = limit
 

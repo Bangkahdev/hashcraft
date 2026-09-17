@@ -23,8 +23,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from collections.abc import Iterable
-from typing import TextIO
+from typing import Iterable, TextIO
 
 
 class DestinationExistsError(FileExistsError):
@@ -37,7 +36,7 @@ class DestinationExistsError(FileExistsError):
     replace this destination.
     """
 
-    def __init__(self, path: str | os.PathLike[str]):
+    def __init__(self, path: str | os.PathLike[str]) -> None:
         super().__init__(
             f"output file already exists and --overwrite was not given: {path}"
         )

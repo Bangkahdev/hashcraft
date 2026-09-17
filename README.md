@@ -96,15 +96,20 @@ hashcraft generate \
   --dry-run
 ```
 
-### Verify a SHA-256 digest against a wordlist or a live pipe
+### Verify a digest against a wordlist or a live pipe
 
-Check candidates from a file:
+Hashcraft supports `sha256` (the default), `md5`, `sha1`, `sha512`,
+and `blake2b`:
 
 ```bash
 hashcraft verify \
   --algorithm sha256 \
   --hash <64-hex-digest> \
   --wordlist wordlist.txt
+```
+
+```bash
+hashcraft verify --algorithm md5 --hash <32-hex-digest> --wordlist wordlist.txt
 ```
 
 Or pipe `generate` straight into `verify` without writing anything to
@@ -124,15 +129,47 @@ with no match, it exits `4`. See `hashcraft generate --help` and
 selection, `--case`, `--separators`, `--max-length`,
 `--max-combinations`, `--limit`, `--overwrite`, and more).
 
-## A note on SHA-256 and what "no match" means
+### Speed up large wordlists with `--jobs` / `-j`
 
-SHA-256 is a **one-way** cryptographic hash function: there is no
+For a big `--wordlist`, spread the hashing work across multiple CPU
+cores:
+
+```bash
+hashcraft verify --algorithm sha256 --hash <digest> \
+  --wordlist large_wordlist.txt --jobs 4
+```
+
+`--jobs` (or `-j`) defaults to `1` (single-process, identical to
+running with no flag at all). `--jobs 0` auto-detects your CPU count.
+Whatever value you pick, every worker process stops immediately the
+moment a match is found -- Hashcraft never keeps hashing in the
+background after it already has an answer.
+
+**Resource note:** each unit of `--jobs` is a full worker process, not
+a lightweight thread. Setting it far above your machine's CPU count
+doesn't speed anything up and just adds process-creation overhead and
+memory pressure; `--jobs 0` (auto-detect) or a small explicit number
+close to your core count is almost always the right choice. This is a
+local resource-usage concern, not a network-facing one -- see
+[`SECURITY.md`](SECURITY.md) for how it's scoped there.
+
+## A note on one-way hash functions and what "no match" means
+
+Every algorithm Hashcraft supports (SHA-256, MD5, SHA-1, SHA-512,
+BLAKE2b) is a **one-way** cryptographic hash function: there is no
 general way to recover an original input from its digest alone. When
 `hashcraft verify` reports no match, that means only that **none of
 the candidates it was given** produced the target digest -- it does
 not mean, and cannot prove, that no plaintext producing that digest
 exists. A negative result reflects the limits of the candidate list
-and generation options you supplied, not a property of SHA-256 itself.
+and generation options you supplied, not a property of the hash
+algorithm itself.
+
+MD5 and SHA-1 are also considered cryptographically broken for
+collision resistance (unrelated inputs can be made to produce the
+same digest) -- that doesn't change what a Hashcraft match or
+non-match tells you here, but don't rely on either algorithm anywhere
+collision resistance actually matters.
 
 ## Exit codes
 
@@ -141,9 +178,29 @@ and generation options you supplied, not a property of SHA-256 itself.
 | `0`  | Successful generation, or a verification match |
 | `1`  | Internal / general error |
 | `2`  | Invalid command-line arguments |
-| `3`  | Invalid input (including a malformed SHA-256 digest or unreadable input) |
+| `3`  | Invalid input (including a malformed digest or unreadable input) |
 | `4`  | Verification completed with no match |
 | `5`  | A preflight or runtime resource limit (`--max-combinations` / `--limit`) was exceeded |
+
+## What's new in v2
+
+- **Multiple digest algorithms**: `--algorithm` now accepts `md5`,
+  `sha1`, `sha256` (default), `sha512`, and `blake2b`, behind a
+  pluggable registry (`hashing/algorithms.py`) -- adding another
+  `hashlib`-backed algorithm doesn't require touching the verifier.
+- **Parallel verification**: `verify --jobs`/`-j` distributes
+  candidate hashing across multiple CPU-core worker processes for
+  large wordlists, while still guaranteeing an exact, reproducible
+  `checked_count` and immediate termination of every worker as soon
+  as a match is found.
+- **Not yet implemented**: mask/pattern-based candidate generation
+  (`--mask`, e.g. hashcat-style `?d?d` placeholders) is part of the
+  broader v2 proposal but is intentionally **not** included in this
+  release -- its exact pattern syntax needs to be pinned down first.
+  `generate` still covers case, leetspeak, separators, and symbol
+  variants as in v1.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the full, itemized history.
 
 ## More documentation
 

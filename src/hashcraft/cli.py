@@ -44,6 +44,14 @@ assumptions already noted and approved in earlier modules):
 * An empty resolved token list (no sources produced anything) is
   treated as invalid input (exit code 3), since generation cannot
   proceed meaningfully without at least one token.
+* (v2) ``verify --jobs``/``-j`` resolves PRD v2 section B's own
+  ambiguous wording ("Default: 1 ... or auto-detect CPU count if
+  ``-j 0`` or flag is omitted") as: omitted -> ``1`` (sequential,
+  byte-identical to v1's behavior); ``--jobs 0`` -> auto-detect via
+  ``os.cpu_count()`` (falling back to ``1`` if that returns
+  ``None``, e.g. inside some containers); ``--jobs N`` (N>0) -> ``N``
+  worker processes. See ``hashing/verifier.py``'s module docstring
+  for the ordering/determinism guarantees of the parallel path itself.
 
 Flag these for explicit PRD confirmation before relying on them.
 """
@@ -51,14 +59,14 @@ Flag these for explicit PRD confirmation before relying on them.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import traceback
-from collections.abc import Sequence
-from typing import NoReturn, TextIO
+from typing import NoReturn, Sequence, TextIO
 
 from . import __version__
 from .generation.combinations import DEFAULT_SEPARATORS
-from .generation.estimate import raw_upper_bound, run_filter_aware_preflight
+from .generation.estimate import PreflightResult, raw_upper_bound, run_filter_aware_preflight
 from .generation.generator import GenerationConfig, iter_candidates
 from .generation.limits import (
     DEFAULT_LIMIT,
@@ -67,7 +75,7 @@ from .generation.limits import (
     ResourceLimits,
     enforce_emission_limit,
 )
-from .hashing.algorithms import get_algorithm
+from .hashing.algorithms import get_algorithm, supported_algorithm_names
 from .hashing.validators import InvalidDigestError, validate_and_normalize_digest
 from .hashing.verifier import (
     iter_stdin_candidate_lines,
@@ -96,7 +104,7 @@ _EXIT_LIMIT_EXCEEDED = 5
 class _CliError(Exception):
     """An error already mapped to one of PRD 8's exit codes."""
 
-    def __init__(self, message: str, exit_code: int):
+    def __init__(self, message: str, exit_code: int) -> None:
         super().__init__(message)
         self.exit_code = exit_code
 
@@ -113,6 +121,23 @@ def _positive_int(value: str) -> int:
         raise argparse.ArgumentTypeError(f"{value!r} is not an integer") from exc
     if parsed <= 0:
         raise argparse.ArgumentTypeError(f"{value!r} must be a positive integer")
+    return parsed
+
+
+def _non_negative_int(value: str) -> int:
+    """Type for ``--jobs``/``-j`` (PRD v2 section B): 0 or a positive integer.
+
+    ``0`` is a legitimate, meaningful value here ("auto-detect CPU
+    count" -- resolved later by ``_resolve_jobs``), unlike every other
+    numeric option in this CLI, which is why this is a separate type
+    function from ``_positive_int`` rather than reusing it.
+    """
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"{value!r} is not an integer") from exc
+    if parsed < 0:
+        raise argparse.ArgumentTypeError(f"{value!r} must be 0 or a positive integer")
     return parsed
 
 
@@ -197,14 +222,26 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # -- verify ---------------------------------------------------------
     verify_parser = subparsers.add_parser(
-        "verify", parents=[common], help="verify a SHA-256 digest against candidates"
+        "verify", parents=[common], help="verify a digest against candidates"
     )
-    verify_parser.add_argument("--algorithm", choices=("sha256",), default="sha256")
+    verify_parser.add_argument(
+        "--algorithm", choices=supported_algorithm_names(), default="sha256"
+    )
     verify_parser.add_argument("--hash", dest="target_hash", required=True)
     verify_source = verify_parser.add_mutually_exclusive_group(required=True)
     verify_source.add_argument("--wordlist", dest="wordlist_path", default=None)
     verify_source.add_argument(
         "--stdin", dest="use_stdin_candidates", action="store_true"
+    )
+    verify_parser.add_argument(
+        "--jobs",
+        "-j",
+        type=_non_negative_int,
+        default=1,
+        help=(
+            "worker processes for parallel hashing (PRD v2 section B); "
+            "default 1 (sequential); 0 auto-detects the CPU count"
+        ),
     )
 
     # -- info / version ---------------------------------------------------
@@ -288,7 +325,7 @@ def _print_dry_run_report(
     tokens: Sequence[str],
     config: GenerationConfig,
     resource_limits: ResourceLimits,
-    preflight,
+    preflight: PreflightResult,
     stream: TextIO,
 ) -> None:
     print("Hashcraft dry run", file=stream)
@@ -399,20 +436,38 @@ def _cmd_generate(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------
 
 
+def _resolve_jobs(requested: int) -> int:
+    """Resolve ``--jobs``' CLI value to a concrete positive worker count.
+
+    ``0`` means "auto-detect" (PRD v2 section B) via ``os.cpu_count()``;
+    some sandboxed/containerized environments report ``None`` here, in
+    which case this falls back to ``1`` (fully sequential) rather than
+    failing the command outright.
+    """
+    if requested == 0:
+        return os.cpu_count() or 1
+    return requested
+
+
 def _cmd_verify(args: argparse.Namespace) -> int:
-    # PRD 7: invalid digests fail before the wordlist/stdin is read at all.
-    validate_and_normalize_digest(args.target_hash)
     algorithm = get_algorithm(args.algorithm)
+    # PRD 7: invalid digests fail before the wordlist/stdin is read at
+    # all. The expected length depends on the selected algorithm (v2
+    # section A), so the algorithm must be resolved first.
+    validate_and_normalize_digest(
+        args.target_hash, expected_hex_length=algorithm.digest_hex_length
+    )
+    jobs = _resolve_jobs(args.jobs)
 
     if args.wordlist_path is not None:
         try:
             candidates = iter_wordlist_file_lines(args.wordlist_path)
-            result = verify(candidates, args.target_hash, algorithm=algorithm)
+            result = verify(candidates, args.target_hash, algorithm=algorithm, jobs=jobs)
         except OSError as exc:
             raise _CliError(f"could not read wordlist: {exc}", _EXIT_INVALID_INPUT) from exc
     else:
         candidates = iter_stdin_candidate_lines(sys.stdin)
-        result = verify(candidates, args.target_hash, algorithm=algorithm)
+        result = verify(candidates, args.target_hash, algorithm=algorithm, jobs=jobs)
 
     if result.matched:
         print(result.matched_candidate)
@@ -443,17 +498,17 @@ Authorized Use Only: use this tool only against systems and hashes
 you own or are explicitly authorized to test -- CTFs, laboratory
 work, lawful research, and permitted penetration tests.
 
-SHA-256 is a one-way cryptographic hash function. A failed
-verification means only that none of the generated candidates matched
-the supplied digest; it does not establish that an original plaintext
-does not exist.
+SHA-256 (and every other supported algorithm here) is a one-way
+cryptographic hash function. A failed verification means only that
+none of the generated candidates matched the supplied digest; it does
+not establish that an original plaintext does not exist.
 
-Supported digest algorithm(s): sha256
+Supported digest algorithm(s): {algorithms}
 """
 
 
 def _cmd_info(_args: argparse.Namespace) -> int:
-    print(_INFO_TEXT.format(version=__version__))
+    print(_INFO_TEXT.format(version=__version__, algorithms=", ".join(supported_algorithm_names())))
     return _EXIT_SUCCESS
 
 
