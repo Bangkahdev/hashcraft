@@ -19,8 +19,8 @@ job.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Iterable, Iterator
 
 DEFAULT_MAX_COMBINATIONS = 500_000
 DEFAULT_LIMIT = 100_000

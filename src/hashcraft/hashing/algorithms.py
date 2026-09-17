@@ -24,7 +24,8 @@ inaccurate categorization doesn't propagate into user-facing docs.
 from __future__ import annotations
 
 import hashlib
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 
 class HashAlgorithm(Protocol):
