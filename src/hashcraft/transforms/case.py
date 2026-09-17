@@ -19,7 +19,7 @@ CaseMode = Literal["lower", "upper", "capitalize", "all"]
 _ALL_ORDER: tuple[CaseMode, ...] = ("lower", "upper", "capitalize")
 
 
-def _render(candidate: str, mode: Literal["lower", "upper", "capitalize"]) -> str:
+def _render(candidate: str, mode: CaseMode) -> str:
     if mode == "lower":
         return candidate.lower()
     if mode == "upper":
